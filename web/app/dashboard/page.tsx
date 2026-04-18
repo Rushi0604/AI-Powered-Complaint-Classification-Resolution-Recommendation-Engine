@@ -88,22 +88,26 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const email = session.user.email || "";
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        const email = user.email || "";
         const userRole = getUserRole(email);
         
         setRole(userRole);
         setUserEmail(email);
         setUserName(
-          session.user.user_metadata?.full_name ||
+          user.user_metadata?.full_name ||
             email.split("@")[0] ||
             "User"
         );
 
         fetchComplaints(userRole, email);
+      } catch (e) {
+        console.error("Failed to parse user", e);
       }
-    });
+    }
   }, []);
 
   const openProcessModal = async (complaint: Complaint) => {
@@ -272,8 +276,8 @@ export default function DashboardPage() {
             </p>
           </div>
           <button
-            onClick={async () => {
-              await supabase.auth.signOut();
+            onClick={() => {
+              localStorage.removeItem("user");
               window.location.href = "/";
             }}
             className="px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 shadow-sm transition-all"

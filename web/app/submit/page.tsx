@@ -68,18 +68,22 @@ export default function SubmitPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUserEmail(session.user.email || "");
-        setUserId(session.user.id);
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setUserEmail(user.email || "");
+        setUserId(user.id || "000");
         setUserName(
-          session.user.user_metadata?.full_name ||
-            session.user.email?.split("@")[0] ||
+          user.user_metadata?.full_name ||
+            user.email?.split("@")[0] ||
             "User"
         );
-        setRole(getUserRole(session.user.email));
+        setRole(getUserRole(user.email || ""));
+      } catch (e) {
+        console.error("Failed to parse user", e);
       }
-    });
+    }
   }, []);
 
   // Check warranty whenever product type or buy date changes

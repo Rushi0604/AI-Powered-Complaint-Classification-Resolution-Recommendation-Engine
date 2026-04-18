@@ -21,34 +21,42 @@ export default function HistoryPage() {
   const [filter, setFilter] = useState<string>("All");
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const userRole = getUserRole(session.user.email);
-        setRole(userRole);
+    const fetchHistory = async () => {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          const email = user.email || "";
+          const userRole = getUserRole(email);
+          setRole(userRole);
 
-        // Fetch complaints from Supabase
-        if (userRole === "employee") {
-          const { data } = await supabase
-            .from("Complain_Data")
-            .select("*")
-            .eq("email", session.user.email)
-            .order("complaint_id", { ascending: false })
-            .limit(5000);
+          // Fetch complaints from Supabase
+          if (userRole === "employee") {
+            const { data } = await supabase
+              .from("Complain_Data")
+              .select("*")
+              .eq("email", email)
+              .order("complaint_id", { ascending: false })
+              .limit(5000);
 
-          if (data) setComplaints(data);
-        } else {
-          // Owner sees ALL complaints
-          const { data } = await supabase
-            .from("Complain_Data")
-            .select("*")
-            .order("complaint_id", { ascending: false })
-            .limit(5000);
+            if (data) setComplaints(data);
+          } else {
+            // Owner sees ALL complaints
+            const { data } = await supabase
+              .from("Complain_Data")
+              .select("*")
+              .order("complaint_id", { ascending: false })
+              .limit(5000);
 
-          if (data) setComplaints(data);
+            if (data) setComplaints(data);
+          }
+        } catch (e) {
+          console.error("Failed to parse user", e);
         }
-        setLoading(false);
       }
-    });
+      setLoading(false);
+    };
+    fetchHistory();
   }, []);
 
   const statusStyle = (status: string) => {

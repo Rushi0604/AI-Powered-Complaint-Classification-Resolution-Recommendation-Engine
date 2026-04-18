@@ -42,25 +42,18 @@ export default function Sidebar() {
 
   useEffect(() => {
     import("@/lib/roles").then(({ getUserRole }) => {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) {
-          const email = session.user.email || "";
-          const name = session.user.user_metadata?.full_name || email.split("@")[0] || "User";
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          const email = user.email || "";
+          const name = user.user_metadata?.full_name || email.split("@")[0] || "User";
           setUserName(name);
           setUserRole(getUserRole(email));
+        } catch (e) {
+          console.error("Failed to parse user session", e);
         }
-      });
-
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-          const email = session.user.email || "";
-          const name = session.user.user_metadata?.full_name || email.split("@")[0] || "User";
-          setUserName(name);
-          setUserRole(getUserRole(email));
-        }
-      });
-
-      return () => subscription.unsubscribe();
+      }
     });
   }, []);
 
@@ -132,9 +125,9 @@ export default function Sidebar() {
       {/* Footer & Logout */}
       <div className="px-5 py-4 border-t" style={{ borderColor: "var(--card-border)" }}>
         <button 
-          onClick={async () => {
-            const { supabase } = await import('@/lib/supabase');
-            await supabase.auth.signOut();
+          onClick={() => {
+            localStorage.removeItem('user');
+            window.location.href = '/';
           }}
           className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-[13px] font-medium text-red-600 hover:bg-red-50 transition-all duration-150 mb-3"
         >

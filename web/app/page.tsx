@@ -32,37 +32,53 @@ export default function LandingPage() {
 
     try {
       if (authMode === 'signup') {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: name },
-          },
-        });
-        if (error) throw error;
-        router.push('/dashboard');
-      } else {
-        const { error, data } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        
-        // AUTO-SIGNUP HACK FOR PROTOTYPE:
-        if (error && error.message.includes('Invalid login credentials')) {
-          const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
-            email,
-            password,
-          });
-          
-          if (!signUpError && signUpData?.user) {
-            await supabase.auth.signInWithPassword({ email, password });
-            router.push('/dashboard');
-            return;
-          }
-          throw error; 
-        } else if (error) {
-          throw error;
+        // Check if user exists
+        const { data: existing } = await supabase
+          .from('User_data')
+          .select('email')
+          .eq('email', email.toLowerCase().trim())
+          .single();
+
+        if (existing) {
+          throw new Error('An account with this email already exists. Please log in.');
         }
+
+        // Insert new user
+        const { error: insertError } = await supabase
+          .from('User_data')
+          .insert({
+            email: email.toLowerCase().trim(),
+            password: password,
+            user_name: name || email.split('@')[0],
+          });
+
+        if (insertError) throw insertError;
+        
+        // Auto log in after signup
+        localStorage.setItem('user', JSON.stringify({ 
+          email: email.toLowerCase().trim(),
+          user_metadata: { full_name: name || email.split('@')[0] } 
+        }));
+        router.push('/dashboard');
+        
+      } else {
+        // Login
+        const { data: user, error: loginError } = await supabase
+          .from('User_data')
+          .select('*')
+          .eq('email', email.toLowerCase().trim())
+          .eq('password', password)
+          .single();
+
+        if (loginError || !user) {
+          throw new Error('Invalid login credentials');
+        }
+        
+        // Save session
+        localStorage.setItem('user', JSON.stringify({
+          email: user.email,
+          user_metadata: { full_name: user.user_name || user.email.split('@')[0] }
+        }));
         
         router.push('/dashboard');
       }

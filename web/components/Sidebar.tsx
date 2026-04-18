@@ -38,24 +38,38 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [userName, setUserName] = useState<string>("");
+  const [userRole, setUserRole] = useState<"owner" | "employee">("employee");
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        const name = session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "User";
-        setUserName(name);
-      }
-    });
+    import("@/lib/roles").then(({ getUserRole }) => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          const email = session.user.email || "";
+          const name = session.user.user_metadata?.full_name || email.split("@")[0] || "User";
+          setUserName(name);
+          setUserRole(getUserRole(email));
+        }
+      });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        const name = session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "User";
-        setUserName(name);
-      }
-    });
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          const email = session.user.email || "";
+          const name = session.user.user_metadata?.full_name || email.split("@")[0] || "User";
+          setUserName(name);
+          setUserRole(getUserRole(email));
+        }
+      });
 
-    return () => subscription.unsubscribe();
+      return () => subscription.unsubscribe();
+    });
   }, []);
+
+  const filteredNavItems = navItems.filter(item => {
+    if (userRole === "owner" && (item.label === "Submit Complaint" || item.label === "History")) {
+      return false; // Hide these from owner
+    }
+    return true;
+  });
 
   return (
     <aside
@@ -79,7 +93,7 @@ export default function Sidebar() {
               {userName ? `Hi, ${userName}` : "ComplaintIQ"}
             </h1>
             <p className="text-[10px] font-medium" style={{ color: "var(--muted)" }}>
-              Intelligence Engine
+              {userRole === "owner" ? "Owner Terminal" : "Intelligence Engine"}
             </p>
           </div>
         </div>
@@ -93,7 +107,7 @@ export default function Sidebar() {
         >
           Menu
         </p>
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link

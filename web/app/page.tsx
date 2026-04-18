@@ -204,7 +204,7 @@ export default function LandingPage() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-all"
-                      placeholder="John Doe"
+                      placeholder="Enter your name"
                     />
                   </div>
                 )}

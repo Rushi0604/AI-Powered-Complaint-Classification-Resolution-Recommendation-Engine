@@ -24,6 +24,15 @@ export default function LandingPage() {
     setSuccessMsg(null);
   };
 
+  // Helper: add user to custom User table (visible in Table Editor)
+  const syncUserTable = async (userEmail: string, userPass: string, userName?: string) => {
+    await supabase.from('User').upsert({
+      email: userEmail,
+      password: userPass,
+      user_name: userName || userEmail.split('@')[0],
+    }, { onConflict: 'email' });
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -40,6 +49,10 @@ export default function LandingPage() {
           },
         });
         if (error) throw error;
+
+        // Also add to the custom User table
+        await syncUserTable(email, password, name || undefined);
+
         router.push('/dashboard');
       } else {
         const { error, data } = await supabase.auth.signInWithPassword({
@@ -55,6 +68,9 @@ export default function LandingPage() {
           });
           
           if (!signUpError && signUpData?.user) {
+            // Also add to the custom User table
+            await syncUserTable(email, password);
+
             await supabase.auth.signInWithPassword({ email, password });
             router.push('/dashboard');
             return;

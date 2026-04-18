@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from analyzer import categorize_complaint
 from priority import calculate_priority
 from fake_detector import is_suspicious
 from recommender import recommend_actions
 
 app = Flask(__name__)
+CORS(app)
 
 # ─────────────────────────────────────────────
 # Frontend UI served at the root route
@@ -215,4 +217,4 @@ def analyze():
         return jsonify({"error": "Missing 'complaint' string or 'complaints' array in payload"}), 400
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

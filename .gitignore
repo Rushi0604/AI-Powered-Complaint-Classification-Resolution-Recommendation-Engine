@@ -11,11 +11,11 @@ web/out/
 .env.*.local
 
 # Python
-api/__pycache__/
-api/*.pyc
-api/venv/
-api/.venv/
-api/*.db
+backend/__pycache__/
+backend/*.pyc
+backend/venv/
+backend/.venv/
+backend/*.db
 
 # OS
 .DS_Store

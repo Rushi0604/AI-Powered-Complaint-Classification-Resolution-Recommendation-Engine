@@ -66,6 +66,15 @@ export default function SubmitPage() {
   const [error, setError] = useState<string | null>(null);
   const [warrantyError, setWarrantyError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [userIp, setUserIp] = useState<string>("");
+
+  useEffect(() => {
+    // Fetch user's public IP address
+    fetch("https://api.ipify.org?format=json")
+      .then(res => res.json())
+      .then(data => setUserIp(data.ip))
+      .catch(() => setUserIp("unknown"));
+  }, []);
 
   useEffect(() => {
     const userStr = localStorage.getItem("user");
@@ -125,6 +134,7 @@ export default function SubmitPage() {
       // conflict caused by previous CSV data imports.
       const randomId = Math.floor(Math.random() * 10000000) + 10000;
 
+
       const { error: insertError } = await supabase
         .from("Complain_Data")
         .insert({
@@ -135,6 +145,7 @@ export default function SubmitPage() {
           category: complaintType,
           text: description.trim(),
           resolve_status: "submitted",
+          ip_address: userIp || "unknown",
         });
 
       if (insertError) throw insertError;

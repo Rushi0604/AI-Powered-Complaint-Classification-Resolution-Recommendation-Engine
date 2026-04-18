@@ -3,6 +3,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { getUserRole } from "@/lib/roles";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
+  PieChart, Pie, Cell 
+} from 'recharts';
 
 interface Complaint {
   complaint_id?: number | string;
@@ -252,6 +256,18 @@ export default function DashboardPage() {
     { label: "Successfully Resolved", val: stats.resolved, color: "border-emerald-100 bg-emerald-50/50 text-emerald-900", accent: "text-emerald-600" }
   ];
 
+  // Chart Data
+  const statusChartData = [
+    { name: 'Pending', value: stats.pending, color: '#f59e0b' },
+    { name: 'Resolved', value: stats.resolved, color: '#10b981' }
+  ];
+
+  const priorityChartData = [
+    { name: 'High', value: complaints.filter(c => c.priority === 'High').length, color: '#ef4444' },
+    { name: 'Medium', value: complaints.filter(c => c.priority === 'Medium').length, color: '#f59e0b' },
+    { name: 'Low', value: complaints.filter(c => c.priority === 'Low' || !c.priority).length, color: '#10b981' }
+  ];
+
   return (
     <div className="min-h-screen p-6 bg-slate-50 text-slate-900 selection:bg-indigo-100">
       {/* Role Debug Banner */}
@@ -295,6 +311,77 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
+
+        {/* Charts Section - Owner Only */}
+        {role === "owner" && complaints.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+            {/* Status Distribution Chart */}
+            <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-8 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                Resolution Status Distribution
+              </h3>
+              <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={statusChartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {statusChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                    />
+                    <Legend iconType="circle" layout="vertical" align="right" verticalAlign="middle" />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Priority Breakdown Chart */}
+            <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-8 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                Urgency & Priority Breakdown
+              </h3>
+              <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={priorityChartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fontSize: 12, fontWeight: 600, fill: '#64748b' }}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fontSize: 12, fontWeight: 600, fill: '#64748b' }}
+                    />
+                    <Tooltip 
+                      cursor={{ fill: '#f8fafc' }}
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                    />
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                      {priorityChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* List */}
         <div className="rounded-3xl border border-slate-200 bg-white shadow-xl overflow-hidden">

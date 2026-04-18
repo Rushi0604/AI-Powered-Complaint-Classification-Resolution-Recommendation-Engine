@@ -24,6 +24,15 @@ export default function LandingPage() {
     setSuccessMsg(null);
   };
 
+  // Helper: add user to custom User table (visible in Table Editor)
+  const syncUserTable = async (userEmail: string, userPass: string, userName?: string) => {
+    await supabase.from('User').upsert({
+      email: userEmail,
+      password: userPass,
+      user_name: userName || userEmail.split('@')[0],
+    }, { onConflict: 'email' });
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -204,7 +213,7 @@ export default function LandingPage() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-all"
-                      placeholder="John Doe"
+                      placeholder="Enter your name"
                     />
                   </div>
                 )}

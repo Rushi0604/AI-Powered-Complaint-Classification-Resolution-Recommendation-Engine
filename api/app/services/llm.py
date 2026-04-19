@@ -26,12 +26,13 @@ class LlmClassification(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0, description='Confidence score')
 
 
-def classify_complaint(text: str, channel: str = 'web') -> LlmClassification:
+def classify_complaint(text: str, product_type: str = "", channel: str = 'web') -> LlmClassification:
     """
     Send a complaint to Groq LLM and return a structured classification.
 
     Args:
         text: The raw complaint text from the user.
+        product_type: The product category selected by the user.
         channel: The source channel (e.g. 'web', 'email', 'phone').
 
     Returns:
@@ -40,7 +41,7 @@ def classify_complaint(text: str, channel: str = 'web') -> LlmClassification:
     Raises:
         ValueError: If the LLM response cannot be parsed.
     """
-    user_prompt = f'Channel: {channel}\n\nComplaint:\n{text}'
+    user_prompt = f'Channel: {channel}\nProduct Type Selected: {product_type}\n\nComplaint:\n{text}'
 
     response = client.chat.completions.create(
         model='llama-3.1-8b-instant',

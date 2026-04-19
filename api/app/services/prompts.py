@@ -23,6 +23,7 @@ Given a customer complaint text, you must analyze it and return a JSON object wi
 3. **priority_reasons** (list of strings): 2-4 short reasons explaining the priority score.
 
 4. **is_suspicious** (boolean): true if the complaint appears to be fake, spam, or manipulated:
+   - The selected 'Product Type' completely contradicts the product described in the text (e.g. "Grocery" vs "Laptop", "Electronic" vs "Apple (fruit)"). This is a strong indicator of a fake entry.
    - Excessive repetition of urgency/severity keywords
    - Over 50% spam words ratio
    - Very short complaints with no real issue described

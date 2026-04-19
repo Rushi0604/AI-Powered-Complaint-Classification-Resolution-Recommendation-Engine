@@ -21,14 +21,14 @@ def serve(path):
         return send_from_directory(app.static_folder, 'index.html')
 
 
-def process_single_complaint(text):
+def process_single_complaint(text, product_type=""):
     """
     Process a single complaint text through the Groq LLM pipeline.
     If the LLM fails, automatically fallback to our rule-based engine.
     """
     try:
         # Call the Groq LLM Service
-        res = classify_complaint(text, channel="web")
+        res = classify_complaint(text, product_type=product_type, channel="web")
         
         reasons = res.priority_reasons + res.suspicious_reasons
         if not reasons:
@@ -47,7 +47,7 @@ def process_single_complaint(text):
         
         # Ensure backend directory is in path for imports
         import sys
-        backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'backend'))
+        backend_path = os.path.abspath(os.path.dirname(__file__))
         if backend_path not in sys.path:
             sys.path.insert(0, backend_path)
             
@@ -88,7 +88,8 @@ def analyze():
         
     # Case 1: Single complaint
     if "complaint" in data and isinstance(data["complaint"], str):
-        result = process_single_complaint(data["complaint"])
+        product_type = data.get("product_type", "")
+        result = process_single_complaint(data["complaint"], product_type=product_type)
         return jsonify(result), 200
         
     # Case 2: Multiple complaints

@@ -124,7 +124,10 @@ export default function DashboardPage() {
       const res = await fetch("http://127.0.0.1:5001/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ complaint: complaint.description || complaint.text || "" })
+        body: JSON.stringify({ 
+          complaint: complaint.description || complaint.text || "",
+          product_type: complaint.product_type || ""
+        })
       });
       if (res.ok) {
         const data = await res.json();

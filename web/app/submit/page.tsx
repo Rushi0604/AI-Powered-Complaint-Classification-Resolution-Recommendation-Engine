@@ -67,6 +67,8 @@ export default function SubmitPage() {
   const [warrantyError, setWarrantyError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [userIp, setUserIp] = useState<string>("");
+  const [fakeCount, setFakeCount] = useState<number>(0);
+  const [isBlocked, setIsBlocked] = useState<boolean>(false);
 
   useEffect(() => {
     // Fetch user's public IP address
@@ -81,14 +83,46 @@ export default function SubmitPage() {
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        setUserEmail(user.email || "");
+        const email = user.email || "";
+        setUserEmail(email);
         setUserId(user.id || "000");
         setUserName(
           user.user_metadata?.full_name ||
-            user.email?.split("@")[0] ||
+            email.split("@")[0] ||
             "User"
         );
-        setRole(getUserRole(user.email || ""));
+        setRole(getUserRole(email));
+        
+        // Fetch fake complaints from the last 6 months to check for the 7-day/6-month block rule
+        if (email) {
+          const sixMonthsAgo = new Date();
+          sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+          
+          supabase
+            .from("Complain_Data")
+            .select("date")
+            .eq("email", email)
+            .eq("resolve_status", "fake")
+            .gte("date", sixMonthsAgo.toISOString())
+            .order("date", { ascending: true })
+            .then(({ data }) => {
+              if (data && data.length >= 6) { // "More than 5" means 6+
+                let blocked = false;
+                // Sliding window to find 6 fakes within 7 days
+                for (let i = 0; i <= data.length - 6; i++) {
+                  const start = new Date(data[i].date).getTime();
+                  const end = new Date(data[i + 5].date).getTime();
+                  const diffDays = (end - start) / (1000 * 60 * 60 * 24);
+                  
+                  if (diffDays <= 7) {
+                    blocked = true;
+                    break;
+                  }
+                }
+                setIsBlocked(blocked);
+              }
+            });
+        }
       } catch (e) {
         console.error("Failed to parse user", e);
       }
@@ -116,6 +150,11 @@ export default function SubmitPage() {
     setError(null);
     setSuccessMsg(null);
 
+    if (isBlocked) {
+      setError("Your account has been blocked from submitting complaints due to multiple fake/spam submissions.");
+      return;
+    }
+
     // Validate all fields
     if (!productType || !buyDate || !complaintType) {
       setError("Please fill in all required fields.");
@@ -130,10 +169,30 @@ export default function SubmitPage() {
     setLoading(true);
 
     try {
+      // Analyze complaint via AI to check if it's fake before submitting
+      let isFake = false;
+      try {
+        const analyzeRes = await fetch("http://127.0.0.1:5001/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            complaint: description.trim(),
+            product_type: productType
+          })
+        });
+        if (analyzeRes.ok) {
+          const aiData = await analyzeRes.json();
+          if (aiData.status === "Suspicious") {
+            isFake = true;
+          }
+        }
+      } catch (analyzeErr) {
+        console.error("AI Analysis failed during submission:", analyzeErr);
+      }
+
       // Generate a random ID to completely avoid the "User_pkey" sequence 
       // conflict caused by previous CSV data imports.
       const randomId = Math.floor(Math.random() * 10000000) + 10000;
-
 
       const { error: insertError } = await supabase
         .from("Complain_Data")
@@ -145,13 +204,47 @@ export default function SubmitPage() {
           category: complaintType,
           problems: complaintType,
           description: description.trim(),
-          resolve_status: "submitted",
+          resolve_status: isFake ? "fake" : "submitted",
           ip_address: userIp || "unknown",
         });
 
       if (insertError) throw insertError;
 
-      setSuccessMsg("✅ Your complaint has been submitted successfully! Our team will review it shortly.");
+      if (isFake) {
+        // Re-evaluate the 7-day/6-month rule immediately after inserting a fake
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        
+        const { data } = await supabase
+          .from("Complain_Data")
+          .select("date")
+          .eq("email", userEmail)
+          .eq("resolve_status", "fake")
+          .gte("date", sixMonthsAgo.toISOString())
+          .order("date", { ascending: true });
+          
+        if (data && data.length >= 6) {
+          let blocked = false;
+          for (let i = 0; i <= data.length - 6; i++) {
+            const start = new Date(data[i].date).getTime();
+            const end = new Date(data[i + 5].date).getTime();
+            const diffDays = (end - start) / (1000 * 60 * 60 * 24);
+            if (diffDays <= 7) {
+              blocked = true;
+              break;
+            }
+          }
+          if (blocked) {
+            setIsBlocked(true);
+            setError("Your account has been blocked from submitting complaints due to multiple fake/spam submissions within a 7-day window.");
+            return;
+          }
+        }
+        setSuccessMsg("✅ Your complaint has been submitted. (Note: Flagged for review)");
+      } else {
+        setSuccessMsg("✅ Your complaint has been submitted successfully! Our team will review it shortly.");
+      }
+
       // Reset form
       setProductType("");
       setBuyDate("");

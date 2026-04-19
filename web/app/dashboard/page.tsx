@@ -178,7 +178,7 @@ export default function DashboardPage() {
     }
 
     // 2. Quick filter pills
-    if (filterBy === "pending") filtered = filtered.filter(c => c.resolve_status === "submitted");
+    if (filterBy === "pending") filtered = filtered.filter(c => c.resolve_status === "pending");
     if (filterBy === "resolved") filtered = filtered.filter(c => c.resolve_status === "resolved");
     if (filterBy === "high") filtered = filtered.filter(c => c.priority === "High");
     if (filterBy === "pinned") filtered = filtered.filter(c => c.complaint_id && pinnedIds.has(c.complaint_id));
@@ -199,7 +199,7 @@ export default function DashboardPage() {
         case "date":
           return new Date(b.date).getTime() - new Date(a.date).getTime();
         case "status": {
-          const statusOrder: Record<string, number> = { submitted: 0, resolved: 1 };
+          const statusOrder: Record<string, number> = { pending: 0, resolved: 1 };
           return (statusOrder[a.resolve_status] ?? 2) - (statusOrder[b.resolve_status] ?? 2);
         }
         case "newest":
@@ -217,7 +217,7 @@ export default function DashboardPage() {
     const userComplaints = complaints.filter(c => c.email === profileEmail);
     const total = userComplaints.length;
     const resolved = userComplaints.filter(c => c.resolve_status === "resolved").length;
-    const pending = userComplaints.filter(c => c.resolve_status === "submitted").length;
+    const pending = userComplaints.filter(c => c.resolve_status === "pending").length;
     const highPriority = userComplaints.filter(c => c.priority === "High").length;
     const categories = [...new Set(userComplaints.map(c => c.category).filter(Boolean))];
     const products = [...new Set(userComplaints.map(c => c.product_type).filter(Boolean))];
@@ -226,14 +226,14 @@ export default function DashboardPage() {
 
   const stats = {
     total: complaints.length,
-    pending: complaints.filter((c) => c.resolve_status === "submitted").length,
+    pending: complaints.filter((c) => c.resolve_status === "pending").length,
     critical: complaints.filter((c) => c.priority === "High").length,
     resolved: complaints.filter((c) => c.resolve_status === "resolved").length,
   };
 
   const statusStyle = (status: string) => {
     switch (status) {
-      case "submitted":
+      case "pending":
         return { background: "#fffbeb", color: "#d97706", label: "Pending" };
       case "resolved":
         return { background: "#ecfdf5", color: "#059669", label: "Resolved" };
@@ -267,9 +267,9 @@ export default function DashboardPage() {
   ];
 
   const priorityChartData = [
-    { name: 'High', value: complaints.filter(c => c.priority === 'High').length, color: '#ef4444' },
-    { name: 'Medium', value: complaints.filter(c => c.priority === 'Medium').length, color: '#f59e0b' },
-    { name: 'Low', value: complaints.filter(c => c.priority === 'Low' || !c.priority).length, color: '#10b981' }
+    { name: 'High', value: complaints.filter(c => c.priority === 'High' && c.resolve_status === 'pending').length, color: '#ef4444' },
+    { name: 'Medium', value: complaints.filter(c => c.priority === 'Medium' && c.resolve_status === 'pending').length, color: '#f59e0b' },
+    { name: 'Low', value: complaints.filter(c => (c.priority === 'Low' || !c.priority) && c.resolve_status === 'pending').length, color: '#10b981' }
   ];
 
   return (
@@ -346,7 +346,7 @@ export default function DashboardPage() {
             <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl">
               <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-8 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                Urgency & Priority Breakdown
+                Pending — Urgency & Priority Breakdown
               </h3>
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">

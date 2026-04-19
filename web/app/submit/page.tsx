@@ -204,7 +204,7 @@ export default function SubmitPage() {
           category: complaintType,
           problems: complaintType,
           description: description.trim(),
-          resolve_status: isFake ? "fake" : "submitted",
+          resolve_status: isFake ? "fake" : "pending",
           ip_address: userIp || "unknown",
         });
 

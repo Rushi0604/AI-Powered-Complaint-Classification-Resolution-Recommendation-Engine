@@ -62,10 +62,12 @@ export default function HistoryPage() {
 
   const statusStyle = (status: string) => {
     switch (status) {
-      case "submitted":
-        return { background: "#fffbeb", color: "#d97706", label: "Submitted" };
+      case "pending":
+        return { background: "#fffbeb", color: "#d97706", label: "Pending" };
       case "resolved":
         return { background: "#ecfdf5", color: "#059669", label: "Resolved" };
+      case "fake":
+        return { background: "#fef2f2", color: "#dc2626", label: "Fake" };
       default:
         return { background: "#f3f4f6", color: "#6b7280", label: status };
     }
@@ -78,7 +80,7 @@ export default function HistoryPage() {
           (c) => c.resolve_status === filter || c.product_type === filter || c.category === filter
         );
 
-  const filters = ["All", "submitted", "resolved"];
+  const filters = ["All", "pending", "resolved"];
 
   return (
     <div>
@@ -176,9 +178,7 @@ export default function HistoryPage() {
                   >
                     {item.category}
                   </span>
-                  <span className="text-xs ml-auto" style={{ color: "#9ca3af" }}>
-                    Purchased: {item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}
-                  </span>
+
                 </div>
               </div>
             );

@@ -10,6 +10,7 @@ interface Complaint {
   date: string;
   category: string;
   text: string;
+  description: string;
   resolve_status: string;
   email: string;
 }
@@ -63,12 +64,8 @@ export default function HistoryPage() {
     switch (status) {
       case "submitted":
         return { background: "#fffbeb", color: "#d97706", label: "Submitted" };
-      case "in_progress":
-        return { background: "#eff6ff", color: "#2563eb", label: "In Progress" };
       case "resolved":
         return { background: "#ecfdf5", color: "#059669", label: "Resolved" };
-      case "rejected":
-        return { background: "#fef2f2", color: "#dc2626", label: "Rejected" };
       default:
         return { background: "#f3f4f6", color: "#6b7280", label: status };
     }
@@ -81,7 +78,7 @@ export default function HistoryPage() {
           (c) => c.resolve_status === filter || c.product_type === filter || c.category === filter
         );
 
-  const filters = ["All", "submitted", "in_progress", "resolved", "rejected"];
+  const filters = ["All", "submitted", "resolved"];
 
   return (
     <div>
@@ -153,7 +150,9 @@ export default function HistoryPage() {
               >
                 <div className="flex justify-between items-start mb-3">
                   <p className="text-sm font-medium pr-4" style={{ color: "#111827" }}>
-                    &ldquo;{item.text}&rdquo;
+                    {item.description 
+                      ? item.description
+                      : <span style={{ color: "#9ca3af", fontStyle: "italic" }}>No description provided</span>}
                   </p>
                   <span
                     className="text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0"

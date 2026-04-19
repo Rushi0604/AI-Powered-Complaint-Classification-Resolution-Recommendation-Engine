@@ -14,6 +14,7 @@ interface Complaint {
   date: string;
   category: string;
   text: string;
+  description: string;
   resolve_status: string;
   email: string;
   priority: string;
@@ -123,7 +124,7 @@ export default function DashboardPage() {
       const res = await fetch("http://127.0.0.1:5001/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ complaint: complaint.text })
+        body: JSON.stringify({ complaint: complaint.description || complaint.text || "" })
       });
       if (res.ok) {
         const data = await res.json();
@@ -291,15 +292,7 @@ export default function DashboardPage() {
               {role === "owner" ? "Enterprise master control and intelligence dashboard." : "Track your complaint progress below."}
             </p>
           </div>
-          <button
-            onClick={() => {
-              localStorage.removeItem("user");
-              window.location.href = "/";
-            }}
-            className="px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 shadow-sm transition-all"
-          >
-            Logout
-          </button>
+
         </div>
 
         {/* Stats */}
@@ -452,7 +445,7 @@ export default function DashboardPage() {
                     >
                       <option value="newest">Newest First</option>
                       <option value="priority">Priority (High → Low)</option>
-                      <option value="date">Purchase Date</option>
+                      <option value="date">Date</option>
                       <option value="status">Status (Pending First)</option>
                     </select>
                   </div>
@@ -505,7 +498,9 @@ export default function DashboardPage() {
                             </span>
                           )}
                         </div>
-                        <h3 className="text-xl font-bold mb-4 leading-snug text-slate-900">{item.text}</h3>
+                        <h3 className="text-xl font-bold mb-4 leading-snug text-slate-900">
+                          {item.description || <span className="text-slate-400 italic text-base">No description provided</span>}
+                        </h3>
                         
                         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-xs font-medium text-slate-500">
                           <span className="flex items-center gap-1.5">
@@ -585,7 +580,7 @@ export default function DashboardPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Original Text
                 </p>
                 <div className="p-5 bg-white rounded-2xl border border-slate-200 text-slate-700 text-sm leading-relaxed italic shadow-sm">
-                  "{selectedComplaint.text}"
+                  {selectedComplaint.description || selectedComplaint.text || <span className="text-slate-400">No description provided</span>}
                 </div>
               </div>
 
@@ -750,7 +745,9 @@ export default function DashboardPage() {
                     <div key={c.complaint_id || i} className="p-4 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors bg-slate-50/50">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate">{c.text}</p>
+                          <p className="text-sm font-semibold text-slate-800 truncate">
+                            {c.description || c.text || <span className="text-slate-400 italic">No description</span>}
+                          </p>
                           <div className="flex items-center gap-2 mt-2">
                             <span className="text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border" style={{ ...p, borderColor: "currentColor" }}>{c.priority || "—"}</span>
                             <span className="text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-slate-100 text-slate-500">{c.category}</span>

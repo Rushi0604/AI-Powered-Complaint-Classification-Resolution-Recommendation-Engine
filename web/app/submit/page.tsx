@@ -117,8 +117,8 @@ export default function SubmitPage() {
     setSuccessMsg(null);
 
     // Validate all fields
-    if (!productType || !buyDate || !complaintType || !description.trim()) {
-      setError("Please fill in all fields.");
+    if (!productType || !buyDate || !complaintType) {
+      setError("Please fill in all required fields.");
       return;
     }
 
@@ -141,9 +141,10 @@ export default function SubmitPage() {
           complaint_id: randomId,
           email: userEmail,
           product_type: productType,
-          date: buyDate,
+          date: new Date().toISOString(),
           category: complaintType,
-          text: description.trim(),
+          problems: complaintType,
+          description: description.trim(),
           resolve_status: "submitted",
           ip_address: userIp || "unknown",
         });
@@ -310,9 +311,8 @@ export default function SubmitPage() {
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe your issue in detail..."
+                placeholder="optional"
                 rows={5}
-                required
                 className="w-full rounded-lg px-4 py-3 text-sm border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-1 resize-vertical"
                 style={{
                   background: "#f9fafb",

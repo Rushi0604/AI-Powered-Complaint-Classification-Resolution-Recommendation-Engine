@@ -12,18 +12,27 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check local storage for user session
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setSession({ user } as any);
-      } catch (e) {
-        console.error('Invalid user session');
-        localStorage.removeItem('user');
+    const checkSession = () => {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          setSession({ user } as any);
+        } catch (e) {
+          console.error('Invalid user session');
+          localStorage.removeItem('user');
+          setSession(null);
+        }
+      } else {
+        setSession(null);
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    checkSession();
+
+    window.addEventListener('auth-change', checkSession);
+    return () => window.removeEventListener('auth-change', checkSession);
   }, []);
 
   useEffect(() => {

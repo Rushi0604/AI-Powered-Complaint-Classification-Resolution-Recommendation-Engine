@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { ArrowRight, CheckCircle, Shield, Zap, X } from 'lucide-react';
+import { ArrowRight, CheckCircle, Shield, Zap, X, Eye, EyeOff } from 'lucide-react';
 
 export default function LandingPage() {
   const router = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [showPassword, setShowPassword] = useState(false);
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -40,56 +41,112 @@ export default function LandingPage() {
     setSuccessMsg(null);
 
     try {
+      const isOwner = email.toLowerCase().trim().endsWith('@owner.in');
+
       if (authMode === 'signup') {
-        // Check if user exists
-        const { data: existing } = await supabase
-          .from('User_data')
-          .select('email')
-          .eq('email', email.toLowerCase().trim())
-          .single();
+        if (isOwner) {
+          // Check if owner exists
+          const { data: existing } = await supabase
+            .from('owner')
+            .select('email')
+            .eq('email', email.toLowerCase().trim())
+            .single();
 
-        if (existing) {
-          throw new Error('An account with this email already exists. Please log in.');
-        }
+          if (existing) {
+            throw new Error('An owner account with this email already exists. Please log in.');
+          }
 
-        // Insert new user
-        const { error: insertError } = await supabase
-          .from('User_data')
-          .insert({
+          // Insert new owner
+          const { error: insertError } = await supabase
+            .from('owner')
+            .insert({
+              email: email.toLowerCase().trim(),
+              password: password,
+              owner_name: name || email.split('@')[0],
+            });
+
+          if (insertError) throw insertError;
+          
+          // Auto log in after signup
+          localStorage.setItem('user', JSON.stringify({ 
             email: email.toLowerCase().trim(),
-            password: password,
-            user_name: name || email.split('@')[0],
-          });
+            user_metadata: { full_name: name || email.split('@')[0] },
+            role: 'owner'
+          }));
+        } else {
+          // Check if user exists
+          const { data: existing } = await supabase
+            .from('User_data')
+            .select('email')
+            .eq('email', email.toLowerCase().trim())
+            .single();
 
-        if (insertError) throw insertError;
-        
-        // Auto log in after signup
-        localStorage.setItem('user', JSON.stringify({ 
-          email: email.toLowerCase().trim(),
-          user_metadata: { full_name: name || email.split('@')[0] } 
-        }));
-        router.push('/dashboard');
+          if (existing) {
+            throw new Error('An account with this email already exists. Please log in.');
+          }
+
+          // Insert new user
+          const { error: insertError } = await supabase
+            .from('User_data')
+            .insert({
+              email: email.toLowerCase().trim(),
+              password: password,
+              user_name: name || email.split('@')[0],
+            });
+
+          if (insertError) throw insertError;
+          
+          // Auto log in after signup
+          localStorage.setItem('user', JSON.stringify({ 
+            email: email.toLowerCase().trim(),
+            user_metadata: { full_name: name || email.split('@')[0] },
+            role: 'user'
+          }));
+        }
+        window.dispatchEvent(new Event('auth-change'));
+        window.location.href = '/dashboard';
         
       } else {
         // Login
-        const { data: user, error: loginError } = await supabase
-          .from('User_data')
-          .select('*')
-          .eq('email', email.toLowerCase().trim())
-          .eq('password', password)
-          .single();
+        if (isOwner) {
+          const { data: owner, error: loginError } = await supabase
+            .from('owner')
+            .select('*')
+            .eq('email', email.toLowerCase().trim())
+            .eq('password', password)
+            .single();
 
-        if (loginError || !user) {
-          throw new Error('Invalid login credentials');
+          if (loginError || !owner) {
+            throw new Error('Invalid owner login credentials');
+          }
+          
+          // Save session
+          localStorage.setItem('user', JSON.stringify({
+            email: owner.email,
+            user_metadata: { full_name: owner.owner_name || owner.email.split('@')[0] },
+            role: 'owner'
+          }));
+        } else {
+          const { data: user, error: loginError } = await supabase
+            .from('User_data')
+            .select('*')
+            .eq('email', email.toLowerCase().trim())
+            .eq('password', password)
+            .single();
+
+          if (loginError || !user) {
+            throw new Error('Invalid login credentials');
+          }
+          
+          // Save session
+          localStorage.setItem('user', JSON.stringify({
+            email: user.email,
+            user_metadata: { full_name: user.user_name || user.email.split('@')[0] },
+            role: 'user'
+          }));
         }
-        
-        // Save session
-        localStorage.setItem('user', JSON.stringify({
-          email: user.email,
-          user_metadata: { full_name: user.user_name || user.email.split('@')[0] }
-        }));
-        
-        router.push('/dashboard');
+        window.dispatchEvent(new Event('auth-change'));
+        window.location.href = '/dashboard';
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during authentication.');
@@ -230,14 +287,23 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-                  <input 
-                    type="password" 
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-all"
-                    placeholder="••••••••"
-                  />
+                  <div className="relative">
+                    <input 
+                      type={showPassword ? "text" : "password"} 
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full px-4 py-2.5 pr-10 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-all"
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
                 </div>
 
                 {error && (
